@@ -303,9 +303,9 @@ def render_joint(i, center, scale, dir, canvas):
 
 def render_center(cm, center, dir, scale, canvas):
 		cmx, cmy, cmz = cm
-		if dir == 0: x, y, m = cmx, cmy, (15 - cmz) / (1 / scale)
-		elif dir == 1: x, y, m = cmz, cmy, (15 - cmx) / (1 / scale)
-		else: x, y, m = cmx, -cmz, (15 - cmy) / (1 / scale)
+		if dir == 0: x, y, m = cmx, cmy, abs(100 - cmz) * scale
+		elif dir == 1: x, y, m = cmz, cmy, abs(100 - cmx) * scale
+		else: x, y, m = cmx, -cmz, abs(100 - cmy) * scale
 		x, y = x * 10 * scale + center[0], y * 10 * scale + center[1]
 		canvas.create_rectangle(x - m, y - m, x + m, y + m, outline='green')
 
@@ -445,8 +445,8 @@ while True:
 		render_joint(i, centers[2], 0.06, (dir + 2) % 3, canvas)
 
 	cm = get_center(canvas, *ms)
-	render_center(cm, centers[0], dir, 2, canvas)
-	render_center(cm, centers[1], (dir + 1) % 3, 1, canvas)
-	render_center(cm, centers[2], (dir + 2) % 3, 1, canvas)
+	render_center(cm, centers[0], dir, 0.12, canvas)
+	render_center(cm, centers[1], (dir + 1) % 3, 0.06, canvas)
+	render_center(cm, centers[2], (dir + 2) % 3, 0.06, canvas)
 
 	root.update()
