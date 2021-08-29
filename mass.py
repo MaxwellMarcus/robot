@@ -94,10 +94,10 @@ class Angle:
 			print(np.dot(self.abs_rotation_matrix, np.array([r, 0, 0])))
 			print(np.around(self.abs_rotation_matrix, decimals = 3))
 			# if self.prev:
-			# 	print(np.around(np.dot(self.rotation_matrix(), self.prev.abs_rm.T), decimals = 3))
-			# 	self.Rx = np.dot(self.Rx, self.prev.abs_Rx.T)
-			# 	self.Ry = np.dot(self.Ry, self.prev.abs_Ry.T)
-			# 	self.Rz = np.dot(self.Rz, self.prev.abs_Rz.T)
+			#	 print(np.around(np.dot(self.rotation_matrix(), self.prev.abs_rm.T), decimals = 3))
+			#	 self.Rx = np.dot(self.Rx, self.prev.abs_Rx.T)
+			#	 self.Ry = np.dot(self.Ry, self.prev.abs_Ry.T)
+			#	 self.Rz = np.dot(self.Rz, self.prev.abs_Rz.T)
 					# self.theta = self.abs_theta - self.prev.abs_theta
 					# self.phi = self.abs_phi - self.prev.abs_phi
 					# self.psi = self.abs_psi - self.prev.abs_psi
@@ -122,18 +122,18 @@ class Angle:
 				# theta, phi = self.theta, self.phi
 				# #print(round(theta, 3))
 				# while p:
-				# 		theta, phi = theta + p.theta, phi + p.phi
-				#  #	 print(round(theta, 3), round(p.theta, 3))
-				# 		p = p.prev
+				#		 theta, phi = theta + p.theta, phi + p.phi
+				#	#	 print(round(theta, 3), round(p.theta, 3))
+				#		 p = p.prev
 			 #
 				# self.abs_theta, self.abs_phi = theta, phi
 			 # # print('Abs Theta, Theta: ', round(math.degrees(theta), 3), round(math.degrees(self.theta), 3))
 			 #
 				# return [
-				# 				x + d * math.cos(theta) * math.cos(phi),
-				# 				y + d * math.sin(theta) * math.cos(phi),
-				# 				z + d * math.sin(phi)
-				# 			 ]
+				#				 x + d * math.cos(theta) * math.cos(phi),
+				#				 y + d * math.sin(theta) * math.cos(phi),
+				#				 z + d * math.sin(phi)
+				#				]
 			R = self.get_rotation_matrix()
 			Rs = [self.get_rotation_matrix()]
 			zero = np.array([d, 0, 0], 'float')
@@ -158,16 +158,16 @@ class Angle:
 		def set_rotation_matrix(self, dir, i):
 			if dir == 0:
 				self.Rz = np.array([[math.cos(i), -math.sin(i), 0.0],
-				 			   [math.sin(i), math.cos(i), 0.0],
-							   [0.0, 0.0, 1.0]], 'float')
+									[math.sin(i), math.cos(i), 0.0],
+								 [0.0, 0.0, 1.0]], 'float')
 			if dir == 1:
 				self.Ry = np.array([[math.cos(i), 0.0, -math.sin(i)],
-							   [0.0, 1.0, 0.0],
-							   [math.sin(i), 0.0, math.cos(i)]], 'float')
+								 [0.0, 1.0, 0.0],
+								 [math.sin(i), 0.0, math.cos(i)]], 'float')
 			if dir == 2:
 				self.Rx = np.array([[1.0, 0.0, 0.0],
-							   [0.0, math.cos(i), -math.sin(i)],
-							   [0.0, math.sin(i), math.cos(i)]], 'float')
+								 [0.0, math.cos(i), -math.sin(i)],
+								 [0.0, math.sin(i), math.cos(i)]], 'float')
 
 			self.rotation_matrix = self.get_rotation_matrix()
 			print(self.rotation_matrix)
@@ -183,24 +183,24 @@ class Angle:
 			r = math.sqrt(x ** 2 + y ** 2 + z ** 2)
 
 			if not r_xy == 0: self.Rz = np.array([[x / r_xy, -y / r_xy, 0.0],
-				 			   [y / r_xy, x / r_xy, 0.0],
-							   [0.0, 0.0, 1.0]], 'float')
+									[y / r_xy, x / r_xy, 0.0],
+								 [0.0, 0.0, 1.0]], 'float')
 			else: self.Rz = np.eye(3)
 
 			x, y, z = np.dot(self.Rz.T, np.array([x, y, z]))
 			print(x, y, z, r)
 
 			if not r == 0: self.Ry = np.array([[x / r, 0.0, -z / r],
-			 			   [0.0, 1.0, 0.0],
-						   [z / r, 0.0, x / r]], 'float')
+								[0.0, 1.0, 0.0],
+							 [z / r, 0.0, x / r]], 'float')
 			else: self.Ry = np.eye(3)
 
 			x, y, z = np.dot(np.transpose(self.Ry), np.array([x, y, z]))
 			print(x, y, z, r)
 
 			# self.Rx = np.array([[1.0, 0.0, 0.0],
-			#  			   [0.0, z / r, -y / r],
-			# 			   [0.0, y / r, z / r]], 'float')
+			#					 [0.0, z / r, -y / r],
+			#					[0.0, y / r, z / r]], 'float')
 			self.Rx = np.eye(3)
 
 			self.rotation_matrix = self.get_rotation_matrix()
@@ -219,7 +219,7 @@ class Angle:
 
 
 
-def get_center(canvas, *args):
+def get_center(*args):
 		x, y, z = 0, 0, 0
 		t = 0
 
@@ -230,6 +230,16 @@ def get_center(canvas, *args):
 				t += i.m
 
 		return x / t, y / t, z / t
+		
+def get_balance(m1, m2, x, y):
+		if m1.x < m2.x: f1, f2 = m1, m2
+		else: f1, f2 = m2, m1
+		
+		if f1.y < f2.y:
+		    return [f1.x - x, f1.y - y, f1.x + x, f1.y - y, f2.x + x, f2.y - y, f2.x + x, f2.y + y, f2.x - x, f2.y + y, f1.x - x, f1.y + y]
+		else:
+		    return [f1.x - x, f1.y + y, f1.x - x, f1.y - y, f2.x - x, f2.y - y, f2.x + x, f2.y - y, f2.x + x, f2.y + y, f1.x + x, f1.y + y]
+		
 
 def mouse_press(event, j):
 		global dir
@@ -308,6 +318,11 @@ def render_center(cm, center, dir, scale, canvas):
 		else: x, y, m = cmx, -cmz, abs(100 - cmy) * scale
 		x, y = x * 10 * scale + center[0], y * 10 * scale + center[1]
 		canvas.create_rectangle(x - m, y - m, x + m, y + m, outline='green')
+		
+def render_balance(coords, dir, canvas):
+    for i in range(0, len(coords), 2):
+        coords[i], coords[i + 1] = coords[i] + centers[dir][0], coords[i + 1] + centers[dir][1]
+    canvas.create_polygon(*coords, outline='purple', fill='', width=2)
 
 
 dir = 0
@@ -320,18 +335,22 @@ hip = Mass(35, 30.5, 181.475, 35)
 leg_1_hip_servo2 = Mass(3.253, 24.427, 156.252, 12)
 leg_1_upper = Mass(-16.41, 20, 95.437, 19)
 leg_1_lower = Mass(4.954, 17.833, 34.483, 9)
+leg_1_foot = Mass(5, 10, 2.5, 1)
 leg_2_hip_servo2 = Mass(66.684, 24.427, 156.252, 12)
 leg_2_upper = Mass(86.41, 20, 95.437, 19)
 leg_2_lower = Mass(65.046, 17.833, 34.483, 9)
+leg_2_foot = Mass(65, 10, 2.5, 1)
 
 base_joint = Joint(35, 30.5, 181.475, base, hip)
 
 leg_1_hip_servo_joint = Joint(4.45, 25.25, 167.875, hip, leg_1_hip_servo2, prev=base_joint.pivot_a)
 leg_1_hip_servo2_joint = Joint(-11.1, 20, 154.735, leg_1_hip_servo2, leg_1_upper)
 leg_1_hip_upper_joint = Joint(-1, 20, 80, leg_1_upper, leg_1_lower)
+leg_1_foot_joint = Joint(5, 10, 2.5, leg_1_lower, leg_1_foot)
 leg_2_hip_servo_joint = Joint(65.55, 25.25, 167.875, hip, leg_2_hip_servo2, prev=base_joint.pivot_a)
 leg_2_hip_servo2_joint = Joint(81.1, 20, 154.735, leg_2_hip_servo2, leg_2_upper)
 leg_2_hip_upper_joint = Joint(71, 20, 80, leg_2_upper, leg_2_lower)
+leg_2_foot_joint = Joint(65, 10, 2.5, leg_2_lower, leg_2_foot)
 
 arm_base_servo2 = Mass(33.866, 35.52, 206.698, 12)
 arm_mid_servo = Mass(15.365, 40.825, 273.117, 16)
@@ -408,12 +427,13 @@ while True:
 
 	dt = time.time() - t
 	t = time.time()
-	#
-	# gx, gy, gz = mpu.read_gyro()
-	# x, y, z = x + (gx * dt), y + (gy * dt), z + (gz * dt)
-	#
-	# base_joint.set_a(math.radians(x), 0)
-	# base_joint.set_a(math.radians(y), 0)
+	
+# 	gx, gy, gz = mpu.read_gyro()
+# 	x, y, z = x + (gx * dt), y + (gy * dt), z + (gz * dt)
+	
+# 	base_joint.set_a(math.radians(x), 0)
+# 	base_joint.set_a(math.radians(y), 1)
+# 	base_joint.set_a(math.radians(z), 2)
 
 	#---------------------
 	#Render
@@ -444,9 +464,18 @@ while True:
 		render_joint(i, centers[1], 0.06, (dir + 1) % 3, canvas)
 		render_joint(i, centers[2], 0.06, (dir + 2) % 3, canvas)
 
-	cm = get_center(canvas, *ms)
+	cm = get_center(*ms)
 	render_center(cm, centers[0], dir, 0.12, canvas)
 	render_center(cm, centers[1], (dir + 1) % 3, 0.06, canvas)
 	render_center(cm, centers[2], (dir + 2) % 3, 0.06, canvas)
+	
+	if leg_1_foot.z - leg_2_foot.z > 5:
+		foot_1, foot_2 = leg_1_foot, leg_1_foot
+	elif leg_2_foot.z - leg_1_foot.z > 5:
+		foot_1, foot_2 = leg_2_foot, leg_2_foot
+	else:
+		foot_1, foot_2 = leg_1_foot, leg_2_foot
+			
+	render_balance(get_balance(foot_1, foot_2, 15, 30), dir, canvas)
 
 	root.update()
