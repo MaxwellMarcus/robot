@@ -15,6 +15,9 @@ mult_map = {'xy': [1, 1, 0], 'yz': [0, 1, 1], 'zx': [1, 0, 1]}
 class Mass:
 		def __init__(self, x, y, z, m):
 				self.x, self.y, self.z, self.m = x, y, z, m
+
+				self.abs_x, self.abs_y, self.abs_z = x, y, z
+
 				self.joints = []
 				self.pivot_joint = None
 		def set_joint(self, j):
@@ -24,7 +27,6 @@ class Mass:
 				self.pivot_joint = j
 
 		def set_pos(self, x, y, z):
-				#print('pivot x, y, z: ', int(x), int(y), int(z))
 				self.x, self.y, self.z = x, y, z
 
 				for j in self.joints:
@@ -51,7 +53,6 @@ class Joint:
 						prev = self.anchor.pivot_joint.pivot_a
 					else: prev = None
 
-				#print(prev)
 				self.anchor_a = Angle(self.anchor.x, self.anchor.y, self.anchor.z, self.x, self.y, self.z, prev)
 				self.pivot_a = Angle(self.x, self.y, self.z, self.pivot.x, self.pivot.y, self.pivot.z, self.anchor_a)
 
@@ -81,32 +82,14 @@ class Angle:
 			x, y, z = x1 - x, y1 - y, z1 - z
 			r = math.sqrt(x ** 2 + y ** 2 + z ** 2)
 			self.theta = math.atan2(y, z)
-			# try: self.abs_psi = math.asin(x / r)
-			# except: self.abs_psi = 0
-			# self.abs_phi = 0
+			try: self.psi = math.asin(x / r)
+			except: self.psi = 0
+			self.phi = 0
 
-			print()
-			print(x, y, z)
 			self.pos_to_rotation_matrix(x, y, z)
 
-			self.abs_Rx, self.abs_Ry, self.abs_Rz, self.abs_rotation_matrix = np.copy(self.Rx), np.copy(self.Ry), np.copy(self.Rz), np.copy(np.dot(np.dot(self.Rz, self.Ry), self.Rx))
-
-			print(np.dot(self.abs_rotation_matrix, np.array([r, 0, 0])))
-			print(np.around(self.abs_rotation_matrix, decimals = 3))
-			# if self.prev:
-			#	 print(np.around(np.dot(self.rotation_matrix(), self.prev.abs_rm.T), decimals = 3))
-			#	 self.Rx = np.dot(self.Rx, self.prev.abs_Rx.T)
-			#	 self.Ry = np.dot(self.Ry, self.prev.abs_Ry.T)
-			#	 self.Rz = np.dot(self.Rz, self.prev.abs_Rz.T)
-					# self.theta = self.abs_theta - self.prev.abs_theta
-					# self.phi = self.abs_phi - self.prev.abs_phi
-					# self.psi = self.abs_psi - self.prev.abs_psi
-
-			print(np.around(self.rotation_matrix, decimals = 3))
-			print(self.get_pos(r, 0, 0, 0))
-			# if prev: print(np.around(np.dot(np.dot(self.abs_rotation_matrix, self.prev.abs_rotation_matrix.T), self.prev.abs_rotation_matrix), decimals=3))
-
-				# else: self.theta, self.phi, self.psi = self.abs_theta, self.abs_phi, self.abs_psi
+			self.abs_x, self._abs_y, self.abs_z = x, y, z
+			self.abs_Rx, self.abs_Ry, self.abs_Rz, self.abs_rotation_matrix = np.copy(self.Rx), np.copy(self.Ry), np.copy(self.Rz), np.copy(np.dot(np.dot(self.Rz, self.Rx), self.Ry))
 
 		def get_rel_pos(self, d, x, y, z):
 			return [
@@ -116,24 +99,6 @@ class Angle:
 			]#[x + self.get_x(d), y + self.get_y(d), z + self.get_z(d)]
 
 		def get_pos(self, d, x, y, z):
-				# p = self.prev
-			 #
-				# #print('------------------------')
-				# theta, phi = self.theta, self.phi
-				# #print(round(theta, 3))
-				# while p:
-				#		 theta, phi = theta + p.theta, phi + p.phi
-				#	#	 print(round(theta, 3), round(p.theta, 3))
-				#		 p = p.prev
-			 #
-				# self.abs_theta, self.abs_phi = theta, phi
-			 # # print('Abs Theta, Theta: ', round(math.degrees(theta), 3), round(math.degrees(self.theta), 3))
-			 #
-				# return [
-				#				 x + d * math.cos(theta) * math.cos(phi),
-				#				 y + d * math.sin(theta) * math.cos(phi),
-				#				 z + d * math.sin(phi)
-				#				]
 			R = self.get_rotation_matrix()
 			Rs = [self.get_rotation_matrix()]
 			zero = np.array([d, 0, 0], 'float')
@@ -170,11 +135,9 @@ class Angle:
 								 [0.0, math.sin(i), math.cos(i)]], 'float')
 
 			self.rotation_matrix = self.get_rotation_matrix()
-			print(self.rotation_matrix)
-
 
 		def get_rotation_matrix(self):
-			R = np.dot(np.dot(self.Rz, self.Ry), self.Rx)
+			R = np.dot(np.dot(self.Rz, self.Rx), self.Ry)
 			if self.prev: return np.dot(self.prev.abs_rotation_matrix.T, R)
 			else: return R
 
@@ -188,7 +151,6 @@ class Angle:
 			else: self.Rz = np.eye(3)
 
 			x, y, z = np.dot(self.Rz.T, np.array([x, y, z]))
-			print(x, y, z, r)
 
 			if not r == 0: self.Ry = np.array([[x / r, 0.0, -z / r],
 								[0.0, 1.0, 0.0],
@@ -196,15 +158,28 @@ class Angle:
 			else: self.Ry = np.eye(3)
 
 			x, y, z = np.dot(np.transpose(self.Ry), np.array([x, y, z]))
-			print(x, y, z, r)
 
-			# self.Rx = np.array([[1.0, 0.0, 0.0],
-			#					 [0.0, z / r, -y / r],
-			#					[0.0, y / r, z / r]], 'float')
 			self.Rx = np.eye(3)
 
 			self.rotation_matrix = self.get_rotation_matrix()
 
+		def bring_to_axis(self, x, y, z):
+			Rs = [self.get_rotation_matrix()]
+			zero = np.array([x, y, z], 'float')
+
+			p = self.prev
+			i = 0
+			while p:
+				Rs = [p.get_rotation_matrix()] + Rs
+				#pos = np.dot(R, pos)
+				p = p.prev
+				i += 1
+
+			R = Rs[0]
+			for i in Rs[1:]:
+				R = np.dot(R, i)
+
+			return np.dot(R, zero)
 		def __getitem__(self, dir):
 			if dir == 0: return self.theta
 			if dir == 1: return self.phi
@@ -230,16 +205,75 @@ def get_center(*args):
 				t += i.m
 
 		return x / t, y / t, z / t
-		
-def get_balance(m1, m2, x, y):
-		if m1.x < m2.x: f1, f2 = m1, m2
-		else: f1, f2 = m2, m1
-		
-		if f1.y < f2.y:
-		    return [f1.x - x, f1.y - y, f1.x + x, f1.y - y, f2.x + x, f2.y - y, f2.x + x, f2.y + y, f2.x - x, f2.y + y, f1.x - x, f1.y + y]
+
+def get_balance(m1, m2, fs1, fs2, x, y):
+		if m1.abs_x < m2.abs_x: f1, f2 = fs1, fs2
+		else: f1, f2 = fs2, fs1
+
+		#0: - -
+		#1: + -
+		#2: - +
+		#3: + +
+
+		if f1[0].abs_y < f2[0].abs_y:
+		    return [f1[0].x, f1[0].y, f1[1].x, f1[1].y, f2[1].x, f2[1].y, f2[3].x, f2[3].y, f2[2].x, f2[2].y, f1[2].x, f1[2].y]
 		else:
-		    return [f1.x - x, f1.y + y, f1.x - x, f1.y - y, f2.x - x, f2.y - y, f2.x + x, f2.y - y, f2.x + x, f2.y + y, f1.x + x, f1.y + y]
-		
+		    return [f1[2].x, f1[2].y, f1[0].x, f1[0].y, f2[0].x, f2[0].y, f2[1].x, f2[1].y, f2[3].x, f2[3].y, f1[3].x, f1[3].y]
+
+def in_balance(points, x, y):
+
+	#Jordan's Theorum
+	# Points in closed shape will intersect edges an odd number of times
+
+	intersects = 0
+	for i in range(0, len(points), 2):
+		temp1 = [points[i], points[i + 1]]
+		if not i + 2 >= len(points): temp2 = [points[i + 2], points[i + 3]]
+		else: temp2 = [points[0], points[1]]
+		if temp1[0] < temp2[0]: p1, p2 = temp1, temp2
+		else: p1, p2 = temp2, temp1
+
+		if (y >= p1[1] and y <= p2[1]) or (y <= p1[1] and y >= p2[1]):
+			if p2[0] == p1[0]:
+				intersection = p2[0]
+			elif p2[1] == p1[1]:
+				return False
+			else:
+				m = (p2[1] - p1[1]) / (p2[0] - p1[0])
+				b = - (m * p1[0]) + p1[1]
+				intersection = (y - b) / m
+
+
+			if intersection > x:
+				intersects += 1
+	return intersects % 2 == 1
+
+def get_feet(foot_1, foot_2, x, y):
+	if foot_1.y < foot_2.y: f1, f2 = foot_2, foot_1
+	else:  f1, f2 = foot_1, foot_2
+
+	dx, dy = x - foot_1.x, y - foot_1.y
+
+	return x + dx, y + dy
+
+def move_leg(leg_1, leg_2, x, y, cmx, cmy):
+	#Leg Movement Directions:
+	#0: Z
+	#1: X
+	#2: X
+	dy = leg_2[1].y - leg_2[2].y
+	dz = leg_2[1].z - leg_2[2].z
+
+	upper_length = math.sqrt(dy ** 2 + dz ** 2)
+
+	phi = math.asin((y - cmy) / upper_length)
+
+	leg_2[1].set_a(phi, dir = 2)
+	leg_2[2].set_a((math.pi / 2) - phi, dir = 2)
+
+	leg_1[1].set_a(math.pi - phi, dir = 2)
+	leg_1[2].set_a(math.pi / 2 - (math.pi - phi), dir = 2)
+
 
 def mouse_press(event, j):
 		global dir
@@ -251,7 +285,6 @@ def mouse_press(event, j):
 		j.set_a(t, 0)
 		j.set_a(p, 1)
 
-		# print('theta, phi: ', round(math.degrees(t), 3), round(math.degrees(p), 3))
 
 def key_press(event):
 		global dir, theta, phi, psi
@@ -259,33 +292,27 @@ def key_press(event):
 		if event.keysym == 's':dir = (dir - 1) % 3
 
 		d = 0
-		b = base_joint
+		b = zeroed_1_hip_servo
 		if event.keysym == 'a':
-			theta += math.pi / 4
-			b.set_a(b.pivot_a.theta + math.pi / 4, d)
+			theta += math.pi / 100
+			b.set_a(theta, d)
 		if event.keysym == 'd':
-			theta -= math.pi / 4
-			b.set_a(b.pivot_a.theta - math.pi / 4, d)
+			theta -= math.pi / 100
+			b.set_a(theta, d)
 		d = 1
 		if event.keysym == 'Up':
-			phi += math.pi / 4
+			phi += math.pi / 100
 			b.set_a(phi, d)
 		if event.keysym == 'Down':
-			phi -= math.pi / 4
+			phi -= math.pi / 100
 			b.set_a(phi, d)
 		d = 2
 		if event.keysym == 'Left':
-			psi += math.pi / 4
+			psi += math.pi / 100
 			b.set_a(psi, d)
 		if event.keysym == 'Right':
-			psi -= math.pi / 4
+			psi -= math.pi / 100
 			b.set_a(psi, d)
-
-		# print('	 Relative, Absolute')
-		# print('A1', round(math.degrees(j1.anchor_a.theta), 1), round(math.degrees(j1.anchor_a.abs_theta), 1))
-		# print('P1', round(math.degrees(j1.pivot_a.theta), 1), round(math.degrees(j1.pivot_a.abs_theta), 1))
-		# print('A2', round(math.degrees(j2.anchor_a.theta), 1), round(math.degrees(j2.anchor_a.abs_theta), 1))
-		# print('P2', round(math.degrees(j2.pivot_a.theta), 1), round(math.degrees(j2.pivot_a.abs_theta), 1))
 
 def render_mass(i, center, scale, dir, canvas):
 		if dir == 0: x, y, w = i.x, i.y, (i.m - i.z) * scale
@@ -317,13 +344,17 @@ def render_center(cm, center, dir, scale, canvas):
 		elif dir == 1: x, y, m = cmz, cmy, abs(100 - cmx) * scale
 		else: x, y, m = cmx, -cmz, abs(100 - cmy) * scale
 		x, y = x * 10 * scale + center[0], y * 10 * scale + center[1]
-		canvas.create_rectangle(x - m, y - m, x + m, y + m, outline='green')
-		
-def render_balance(coords, dir, canvas):
-    for i in range(0, len(coords), 2):
-        coords[i], coords[i + 1] = coords[i] + centers[dir][0], coords[i + 1] + centers[dir][1]
-    canvas.create_polygon(*coords, outline='purple', fill='', width=2)
+		canvas.create_rectangle(x - 2, y - 2, x + 2, y + 2, outline='green')
 
+def render_balance(o_coords, dir, cm, canvas):
+	coords = o_coords.copy()
+	for i in range(0, len(coords), 2):
+		coords[i], coords[i + 1] = coords[i] + centers[dir][0], coords[i + 1] + centers[dir][1]
+	canvas.create_polygon(*coords, outline='purple' if in_balance(o_coords, cm[0], cm[1]) else 'red', fill='', width=2)
+
+def create_zeroed_joint(x, y, z, anchor, pivot, prev=None):
+	m = Mass(*pivot.get_pos(), 1)
+	return Joint(x, y, z, anchor, pivot, prev), Joint(*m.get_pos(), pivot, m), m
 
 dir = 0
 cdir = 0
@@ -333,34 +364,58 @@ theta, phi, psi = 0, 0, 0
 base = Mass(35, 30.5, 181.475, 0)
 hip = Mass(35, 30.5, 181.475, 35)
 leg_1_hip_servo2 = Mass(3.253, 24.427, 156.252, 12)
+zero_mass_1 = Mass(*leg_1_hip_servo2.get_pos(), 1)
 leg_1_upper = Mass(-16.41, 20, 95.437, 19)
 leg_1_lower = Mass(4.954, 17.833, 34.483, 9)
-leg_1_foot = Mass(5, 10, 2.5, 1)
 leg_2_hip_servo2 = Mass(66.684, 24.427, 156.252, 12)
 leg_2_upper = Mass(86.41, 20, 95.437, 19)
 leg_2_lower = Mass(65.046, 17.833, 34.483, 9)
+
+xr, yr = 7.5, 15
+
+leg_1_foot = Mass(5, 10, 2.5, 1)
+leg_1_foot_1 = Mass(5 - xr, 10 - yr, 2.5, 1)
+leg_1_foot_2 = Mass(5 + xr, 10 - yr, 2.5, 1)
+leg_1_foot_3 = Mass(5 - xr, 10 + yr, 2.5, 1)
+leg_1_foot_4 = Mass(5 + xr, 10 + yr, 2.5, 1)
+
 leg_2_foot = Mass(65, 10, 2.5, 1)
+leg_2_foot_1 = Mass(65 - xr, 10 - yr, 2.5, 1)
+leg_2_foot_2 = Mass(65 + xr, 10 - yr, 2.5, 1)
+leg_2_foot_3 = Mass(65 - xr, 10 + yr, 2.5, 1)
+leg_2_foot_4 = Mass(65 + xr, 10 + yr, 2.5, 1)
 
 base_joint = Joint(35, 30.5, 181.475, base, hip)
 
-leg_1_hip_servo_joint = Joint(4.45, 25.25, 167.875, hip, leg_1_hip_servo2, prev=base_joint.pivot_a)
-leg_1_hip_servo2_joint = Joint(-11.1, 20, 154.735, leg_1_hip_servo2, leg_1_upper)
-leg_1_hip_upper_joint = Joint(-1, 20, 80, leg_1_upper, leg_1_lower)
-leg_1_foot_joint = Joint(5, 10, 2.5, leg_1_lower, leg_1_foot)
-leg_2_hip_servo_joint = Joint(65.55, 25.25, 167.875, hip, leg_2_hip_servo2, prev=base_joint.pivot_a)
-leg_2_hip_servo2_joint = Joint(81.1, 20, 154.735, leg_2_hip_servo2, leg_2_upper)
-leg_2_hip_upper_joint = Joint(71, 20, 80, leg_2_upper, leg_2_lower)
-leg_2_foot_joint = Joint(65, 10, 2.5, leg_2_lower, leg_2_foot)
+leg_1_hip_servo_joint, zeroed_1_hip_servo, zero_mass_hip_1 = create_zeroed_joint(4.45, 25.25, 167.875, hip, leg_1_hip_servo2, prev=base_joint.pivot_a)
+# zeroed_1 = Joint(*zero_mass_1.get_pos(), leg_1_hip_servo2, leg_1_hip_servo_dup)
+leg_1_hip_servo2_joint, zeroed_1_servo_upper, zero_mass_upper_1 = create_zeroed_joint(-11.1, 20, 154.735, zero_mass_hip_1, leg_1_upper)
+leg_1_hip_upper_joint, zeroed_1_upper_lower, zero_mass_lower_1 = create_zeroed_joint(-1, 20, 80, zero_mass_upper_1, leg_1_lower)
+leg_2_hip_servo_joint, zeroed_2_hip_servo, zero_mass_hip_2 = create_zeroed_joint(65.55, 25.25, 167.875, hip, leg_2_hip_servo2, prev=base_joint.pivot_a)
+leg_2_hip_servo2_joint, zeroed_2_servo_upper, zero_mass_upper_2 = create_zeroed_joint(81.1, 20, 154.735, zero_mass_hip_2, leg_2_upper)
+leg_2_hip_upper_joint, zeroed_2_upper_lower, zero_mass_lower_2 = create_zeroed_joint(71, 20, 80, zero_mass_upper_2, leg_2_lower)
 
 arm_base_servo2 = Mass(33.866, 35.52, 206.698, 12)
 arm_mid_servo = Mass(15.365, 40.825, 273.117, 16)
 arm_mid_servo2 = Mass(41.173, 34.927, 301.059, 12)
-arm_top = Mass(41.468, 30.353, 357.687, 25)
+arm_top = Mass(41.468, 30.353, 357.687, 100)#25)
 
-arm_base_servo_joint = Joint(35, 35.75, 195.075, hip, arm_base_servo2, prev=base_joint.pivot_a)
-arm_base_servo2_joint = Joint(19.45, 41, 208.225, arm_base_servo2, arm_mid_servo)
-arm_mid_servo_joint = Joint(29.55, 35.75, 299.925, arm_mid_servo, arm_mid_servo2)
-arm_mid_servo2_joint = Joint(42.7, 30.5, 315.475, arm_mid_servo2, arm_top)
+arm_base_servo_joint, zeroed_hip_arm, zero_mass_base = create_zeroed_joint(35, 35.75, 195.075, hip, arm_base_servo2, prev=base_joint.pivot_a)
+arm_base_servo2_joint, zeroed_base_mid, zero_mass_mid = create_zeroed_joint(19.45, 41, 208.225, zero_mass_base, arm_mid_servo)
+arm_mid_servo_joint, zeroed_mid_mid, zero_mass_mid_2 = create_zeroed_joint(29.55, 35.75, 299.925, zero_mass_mid, arm_mid_servo2)
+arm_mid_servo2_joint, zeroed_mid_top, zero_mass_upper = create_zeroed_joint(42.7, 30.5, 315.475, zero_mass_mid_2, arm_top)
+
+leg_1_foot_joint = Joint(5, 10, 2.5, leg_1_lower, leg_1_foot)
+leg_1_foot_joint_1 = Joint(5, 10, 2.5, leg_1_foot, leg_1_foot_1)
+leg_1_foot_joint_2 = Joint(5, 10, 2.5, leg_1_foot, leg_1_foot_2)
+leg_1_foot_joint_3 = Joint(5, 10, 2.5, leg_1_foot, leg_1_foot_3)
+leg_1_foot_joint_4 = Joint(5, 10, 2.5, leg_1_foot, leg_1_foot_4)
+
+leg_2_foot_joint = Joint(65, 10, 2.5, leg_2_lower, leg_2_foot)
+leg_2_foot_joint_1 = Joint(65, 10, 2.5, leg_2_foot, leg_2_foot_1)
+leg_2_foot_joint_2 = Joint(65, 10, 2.5, leg_2_foot, leg_2_foot_2)
+leg_2_foot_joint_3 = Joint(65, 10, 2.5, leg_2_foot, leg_2_foot_3)
+leg_2_foot_joint_4 = Joint(65, 10, 2.5, leg_2_foot, leg_2_foot_4)
 
 ms = [
 				base,
@@ -376,7 +431,7 @@ ms = [
 				arm_base_servo2,
 				arm_mid_servo,
 				arm_mid_servo2,
-				arm_top
+				arm_top,
 		 ]
 js = [
 				base_joint,
@@ -389,7 +444,7 @@ js = [
 				arm_base_servo_joint,
 				arm_base_servo2_joint,
 				arm_mid_servo_joint,
-				arm_mid_servo2_joint
+				arm_mid_servo2_joint,
 		 ]
 
 # m1 = Mass(0, 0, 0, 100)
@@ -427,10 +482,10 @@ while True:
 
 	dt = time.time() - t
 	t = time.time()
-	
+
 # 	gx, gy, gz = mpu.read_gyro()
 # 	x, y, z = x + (gx * dt), y + (gy * dt), z + (gz * dt)
-	
+
 # 	base_joint.set_a(math.radians(x), 0)
 # 	base_joint.set_a(math.radians(y), 1)
 # 	base_joint.set_a(math.radians(z), 2)
@@ -468,14 +523,46 @@ while True:
 	render_center(cm, centers[0], dir, 0.12, canvas)
 	render_center(cm, centers[1], (dir + 1) % 3, 0.06, canvas)
 	render_center(cm, centers[2], (dir + 2) % 3, 0.06, canvas)
-	
+
 	if leg_1_foot.z - leg_2_foot.z > 5:
 		foot_1, foot_2 = leg_1_foot, leg_1_foot
+		feet_1 = [leg_1_foot_1, leg_1_foot_2, leg_1_foot_3, leg_1_foot_4]
+		feet_2 = feet_1
 	elif leg_2_foot.z - leg_1_foot.z > 5:
 		foot_1, foot_2 = leg_2_foot, leg_2_foot
+		feet_1 = [leg_2_foot_1, leg_2_foot_2, leg_2_foot_3, leg_2_foot_4]
+		feet_2 = feet_1
 	else:
 		foot_1, foot_2 = leg_1_foot, leg_2_foot
-			
-	render_balance(get_balance(foot_1, foot_2, 15, 30), dir, canvas)
+		feet_1 = [leg_1_foot_1, leg_1_foot_2, leg_1_foot_3, leg_1_foot_4]
+		feet_2 = [leg_2_foot_1, leg_2_foot_2, leg_2_foot_3, leg_2_foot_4]
+
+	cx, cy = centers[0]
+
+	balance = get_balance(foot_1, foot_2, feet_1, feet_2, 7.5, 15)
+
+	render_balance(balance, dir, cm, canvas)
+
+	if not in_balance(balance, cm[0], cm[1]):
+		feet = get_feet(leg_1_foot, leg_2_foot, cm[0], cm[1])
+
+		temp_leg_1 = [
+			zeroed_1_hip_servo,
+			zeroed_1_servo_upper,
+			zeroed_1_upper_lower
+		]
+		temp_leg_2 = [
+			zeroed_2_hip_servo,
+			zeroed_2_servo_upper,
+			zeroed_2_upper_lower
+		]
+
+		if leg_1_foot.y < leg_2_foot.y: leg_1, leg_2 = temp_leg_2, temp_leg_1
+		else: leg_1, leg_2 = temp_leg_1, temp_leg_2
+
+		# move_leg(leg_1, leg_2, *feet, cm[0], cm[1 ])
+
+		canvas.create_rectangle(cx + feet[0] + 2, cy + feet[1] + 2, cx + feet[0] - 2, cy + feet[1] - 2, width = 4, outline='cyan')
+
 
 	root.update()
