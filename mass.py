@@ -188,6 +188,8 @@ class Angle:
 		def __setitem__(self, dir, i):
 			self.set_rotation_matrix(dir, i)
 			if dir == 0: self.theta = i
+			elif dir == 1: self.phi = i
+			else: self.psi = i
 				# elif dir == 1: self.phi = i
 				# else: self.psi = i
 
@@ -266,13 +268,23 @@ def move_leg(leg_1, leg_2, x, y, cmx, cmy):
 
 	upper_length = math.sqrt(dy ** 2 + dz ** 2)
 
-	phi = math.asin((y - cmy) / upper_length)
+	move_dist = y - cmy
 
-	leg_2[1].set_a(phi, dir = 2)
-	leg_2[2].set_a((math.pi / 2) - phi, dir = 2)
+	if abs(y - cmy) > abs(upper_length):
+		move_dist = upper_length
 
-	leg_1[1].set_a(math.pi - phi, dir = 2)
-	leg_1[2].set_a(math.pi / 2 - (math.pi - phi), dir = 2)
+	psi = math.asin(move_dist / upper_length)
+
+	if leg_2[1].pivot_a.psi - psi > -0.1:
+		v = 0.01
+	else:
+		v = -0.01
+
+	leg_2[1].set_a(leg_2[1].pivot_a.psi + v, dir = 2)
+	leg_2[2].set_a(leg_2[2].pivot_a.psi - v, dir = 2)
+
+	leg_1[1].set_a(leg_1[1].pivot_a.psi - v, dir = 2)
+	leg_1[2].set_a(leg_1[2].pivot_a.psi + v, dir = 2)
 
 
 def mouse_press(event, j):
@@ -292,7 +304,7 @@ def key_press(event):
 		if event.keysym == 's':dir = (dir - 1) % 3
 
 		d = 0
-		b = zeroed_1_hip_servo
+		b = base_joint
 		if event.keysym == 'a':
 			theta += math.pi / 100
 			b.set_a(theta, d)
@@ -313,6 +325,8 @@ def key_press(event):
 		if event.keysym == 'Right':
 			psi -= math.pi / 100
 			b.set_a(psi, d)
+
+		print(math.degrees(theta), math.degrees(phi), math.degrees(psi))
 
 def render_mass(i, center, scale, dir, canvas):
 		if dir == 0: x, y, w = i.x, i.y, (i.m - i.z) * scale
@@ -344,7 +358,7 @@ def render_center(cm, center, dir, scale, canvas):
 		elif dir == 1: x, y, m = cmz, cmy, abs(100 - cmx) * scale
 		else: x, y, m = cmx, -cmz, abs(100 - cmy) * scale
 		x, y = x * 10 * scale + center[0], y * 10 * scale + center[1]
-		canvas.create_rectangle(x - 2, y - 2, x + 2, y + 2, outline='green')
+		canvas.create_rectangle(x - 2, y - 2, x + 2, y + 2, fill='green', outline='green')
 
 def render_balance(o_coords, dir, cm, canvas):
 	coords = o_coords.copy()
@@ -353,8 +367,12 @@ def render_balance(o_coords, dir, cm, canvas):
 	canvas.create_polygon(*coords, outline='purple' if in_balance(o_coords, cm[0], cm[1]) else 'red', fill='', width=2)
 
 def create_zeroed_joint(x, y, z, anchor, pivot, prev=None):
-	m = Mass(*pivot.get_pos(), 1)
-	return Joint(x, y, z, anchor, pivot, prev), Joint(*m.get_pos(), pivot, m), m
+	m = Mass(x, y, z, 0)
+	m1 = Mass(x, y, z, 0)
+	j1 = Joint(*anchor.get_pos(), anchor, m, prev)
+	j2 = Joint(x, y, z, m, m1)
+	j3 = Joint(x, y, z, m1, pivot)
+	return j1, j2, j3
 
 dir = 0
 cdir = 0
@@ -389,11 +407,11 @@ base_joint = Joint(35, 30.5, 181.475, base, hip)
 
 leg_1_hip_servo_joint, zeroed_1_hip_servo, zero_mass_hip_1 = create_zeroed_joint(4.45, 25.25, 167.875, hip, leg_1_hip_servo2, prev=base_joint.pivot_a)
 # zeroed_1 = Joint(*zero_mass_1.get_pos(), leg_1_hip_servo2, leg_1_hip_servo_dup)
-leg_1_hip_servo2_joint, zeroed_1_servo_upper, zero_mass_upper_1 = create_zeroed_joint(-11.1, 20, 154.735, zero_mass_hip_1, leg_1_upper)
-leg_1_hip_upper_joint, zeroed_1_upper_lower, zero_mass_lower_1 = create_zeroed_joint(-1, 20, 80, zero_mass_upper_1, leg_1_lower)
+leg_1_hip_servo2_joint, zeroed_1_servo_upper, zero_mass_upper_1 = create_zeroed_joint(-11.1, 20, 154.735, leg_1_hip_servo2, leg_1_upper)
+leg_1_hip_upper_joint, zeroed_1_upper_lower, zero_mass_lower_1 = create_zeroed_joint(-1, 20, 80, leg_1_upper, leg_1_lower)
 leg_2_hip_servo_joint, zeroed_2_hip_servo, zero_mass_hip_2 = create_zeroed_joint(65.55, 25.25, 167.875, hip, leg_2_hip_servo2, prev=base_joint.pivot_a)
-leg_2_hip_servo2_joint, zeroed_2_servo_upper, zero_mass_upper_2 = create_zeroed_joint(81.1, 20, 154.735, zero_mass_hip_2, leg_2_upper)
-leg_2_hip_upper_joint, zeroed_2_upper_lower, zero_mass_lower_2 = create_zeroed_joint(71, 20, 80, zero_mass_upper_2, leg_2_lower)
+leg_2_hip_servo2_joint, zeroed_2_servo_upper, zero_mass_upper_2 = create_zeroed_joint(81.1, 20, 154.735, leg_2_hip_servo2, leg_2_upper)
+leg_2_hip_upper_joint, zeroed_2_upper_lower, zero_mass_lower_2 = create_zeroed_joint(71, 20, 80, leg_2_upper, leg_2_lower)
 
 arm_base_servo2 = Mass(33.866, 35.52, 206.698, 12)
 arm_mid_servo = Mass(15.365, 40.825, 273.117, 16)
@@ -401,9 +419,9 @@ arm_mid_servo2 = Mass(41.173, 34.927, 301.059, 12)
 arm_top = Mass(41.468, 30.353, 357.687, 100)#25)
 
 arm_base_servo_joint, zeroed_hip_arm, zero_mass_base = create_zeroed_joint(35, 35.75, 195.075, hip, arm_base_servo2, prev=base_joint.pivot_a)
-arm_base_servo2_joint, zeroed_base_mid, zero_mass_mid = create_zeroed_joint(19.45, 41, 208.225, zero_mass_base, arm_mid_servo)
-arm_mid_servo_joint, zeroed_mid_mid, zero_mass_mid_2 = create_zeroed_joint(29.55, 35.75, 299.925, zero_mass_mid, arm_mid_servo2)
-arm_mid_servo2_joint, zeroed_mid_top, zero_mass_upper = create_zeroed_joint(42.7, 30.5, 315.475, zero_mass_mid_2, arm_top)
+arm_base_servo2_joint, zeroed_base_mid, zero_mass_mid = create_zeroed_joint(19.45, 41, 208.225, arm_base_servo2, arm_mid_servo)
+arm_mid_servo_joint, zeroed_mid_mid, zero_mass_mid_2 = create_zeroed_joint(29.55, 35.75, 299.925, arm_mid_servo, arm_mid_servo2)
+arm_mid_servo2_joint, zeroed_mid_top, zero_mass_upper = create_zeroed_joint(42.7, 30.5, 315.475, arm_mid_servo2, arm_top)
 
 leg_1_foot_joint = Joint(5, 10, 2.5, leg_1_lower, leg_1_foot)
 leg_1_foot_joint_1 = Joint(5, 10, 2.5, leg_1_foot, leg_1_foot_1)
@@ -432,6 +450,8 @@ ms = [
 				arm_mid_servo,
 				arm_mid_servo2,
 				arm_top,
+				leg_1_foot,
+				leg_2_foot
 		 ]
 js = [
 				base_joint,
@@ -549,20 +569,21 @@ while True:
 		temp_leg_1 = [
 			zeroed_1_hip_servo,
 			zeroed_1_servo_upper,
-			zeroed_1_upper_lower
+			zeroed_1_upper_lower,
+			leg_1_foot,
 		]
 		temp_leg_2 = [
 			zeroed_2_hip_servo,
 			zeroed_2_servo_upper,
-			zeroed_2_upper_lower
+			zeroed_2_upper_lower,
+			leg_2_foot
 		]
 
 		if leg_1_foot.y < leg_2_foot.y: leg_1, leg_2 = temp_leg_2, temp_leg_1
 		else: leg_1, leg_2 = temp_leg_1, temp_leg_2
 
-		# move_leg(leg_1, leg_2, *feet, cm[0], cm[1 ])
+		move_leg(leg_1, leg_2, *feet, cm[0], cm[1 ])
 
 		canvas.create_rectangle(cx + feet[0] + 2, cy + feet[1] + 2, cx + feet[0] - 2, cy + feet[1] - 2, width = 4, outline='cyan')
-
 
 	root.update()
