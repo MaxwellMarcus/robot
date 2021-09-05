@@ -3,7 +3,8 @@ import math
 import sys
 import time
 import numpy as np
-# import MPU6050 as mpu
+import servo_control as servo
+import MPU6050 as mpu
 
 root = Tk()
 canvas = Canvas(width = 1500, height = 1000)
@@ -258,33 +259,53 @@ def get_feet(foot_1, foot_2, x, y):
 
 	return x + dx, y + dy
 
-def move_leg(leg_1, leg_2, x, y, cmx, cmy):
-	#Leg Movement Directions:
-	#0: Z
-	#1: X
-	#2: X
-	dy = leg_2[1].y - leg_2[2].y
-	dz = leg_2[1].z - leg_2[2].z
-
-	upper_length = math.sqrt(dy ** 2 + dz ** 2)
-
-	move_dist = y - cmy
-
-	if abs(y - cmy) > abs(upper_length):
-		move_dist = upper_length
-
-	psi = math.asin(move_dist / upper_length)
-
-	if leg_2[1].pivot_a.psi - psi > -0.1:
-		v = 0.01
-	else:
-		v = -0.01
-
-	leg_2[1].set_a(leg_2[1].pivot_a.psi + v, dir = 2)
-	leg_2[2].set_a(leg_2[2].pivot_a.psi - v, dir = 2)
-
-	leg_1[1].set_a(leg_1[1].pivot_a.psi - v, dir = 2)
-	leg_1[2].set_a(leg_1[2].pivot_a.psi + v, dir = 2)
+def move_leg(o_leg_1, o_leg_2, x, y, cmx, cmy):
+    if o_leg_1[3].y < o_leg_2[3].y: leg_1, leg_2 = o_leg_2, o_leg_1
+    else: leg_1, leg_2 = o_leg_1, o_leg_2
+    
+    
+    #Leg Movement Directions:
+    #0: Z
+    #1: X
+    #2: X
+    dy = leg_2[1].y - leg_2[2].y
+    dz = leg_2[1].z - leg_2[2].z
+    
+    upper_length = math.sqrt(dy ** 2 + dz ** 2)
+    
+    move_dist = y - cmy
+    
+    if abs(y - cmy) > abs(upper_length):
+    	move_dist = upper_length
+    
+    psi = math.asin(move_dist / upper_length)
+    
+    # if leg_2[1].pivot_a.psi - psi > -0.1:
+    # 	v = 0.01
+    # else:
+    # 	v = -0.01
+    	
+    # leg_2[1].set_a(leg_2[1].pivot_a.psi + v, dir = 2)
+    # leg_2[2].set_a(leg_2[2].pivot_a.psi - v, dir = 2)
+    
+    # leg_1[1].set_a(leg_1[1].pivot_a.psi - v, dir = 2)
+    # leg_1[2].set_a(leg_1[2].pivot_a.psi + v, dir = 2)
+    
+    # servo.move_a(1, v)
+    # servo.move_a(0, v)
+    # servo.move_a(4, v)
+    # servo.move_a(3, v)
+    
+    leg_2[1].set_a(psi, dir = 2)
+    leg_2[2].set_a(-psi, dir = 2)
+    
+    leg_1[1].set_a(-psi, dir = 2)
+    leg_1[2].set_a(psi, dir = 2)
+    
+    servo.set_a(1, psi)
+    servo.set_a(0, psi)
+    servo.set_a(4, psi)
+    servo.set_a(3, psi)
 
 
 def mouse_press(event, j):
@@ -413,15 +434,15 @@ leg_2_hip_servo_joint, zeroed_2_hip_servo, zero_mass_hip_2 = create_zeroed_joint
 leg_2_hip_servo2_joint, zeroed_2_servo_upper, zero_mass_upper_2 = create_zeroed_joint(81.1, 20, 154.735, leg_2_hip_servo2, leg_2_upper)
 leg_2_hip_upper_joint, zeroed_2_upper_lower, zero_mass_lower_2 = create_zeroed_joint(71, 20, 80, leg_2_upper, leg_2_lower)
 
-arm_base_servo2 = Mass(33.866, 35.52, 206.698, 12)
-arm_mid_servo = Mass(15.365, 40.825, 273.117, 16)
-arm_mid_servo2 = Mass(41.173, 34.927, 301.059, 12)
-arm_top = Mass(41.468, 30.353, 357.687, 100)#25)
+# arm_base_servo2 = Mass(33.866, 35.52, 206.698, 12)
+# arm_mid_servo = Mass(15.365, 40.825, 273.117, 16)
+# arm_mid_servo2 = Mass(41.173, 34.927, 301.059, 12)
+# arm_top = Mass(41.468, 30.353, 357.687, 100)#25)
 
-arm_base_servo_joint, zeroed_hip_arm, zero_mass_base = create_zeroed_joint(35, 35.75, 195.075, hip, arm_base_servo2, prev=base_joint.pivot_a)
-arm_base_servo2_joint, zeroed_base_mid, zero_mass_mid = create_zeroed_joint(19.45, 41, 208.225, arm_base_servo2, arm_mid_servo)
-arm_mid_servo_joint, zeroed_mid_mid, zero_mass_mid_2 = create_zeroed_joint(29.55, 35.75, 299.925, arm_mid_servo, arm_mid_servo2)
-arm_mid_servo2_joint, zeroed_mid_top, zero_mass_upper = create_zeroed_joint(42.7, 30.5, 315.475, arm_mid_servo2, arm_top)
+# arm_base_servo_joint, zeroed_hip_arm, zero_mass_base = create_zeroed_joint(35, 35.75, 195.075, hip, arm_base_servo2, prev=base_joint.pivot_a)
+# arm_base_servo2_joint, zeroed_base_mid, zero_mass_mid = create_zeroed_joint(19.45, 41, 208.225, arm_base_servo2, arm_mid_servo)
+# arm_mid_servo_joint, zeroed_mid_mid, zero_mass_mid_2 = create_zeroed_joint(29.55, 35.75, 299.925, arm_mid_servo, arm_mid_servo2)
+# arm_mid_servo2_joint, zeroed_mid_top, zero_mass_upper = create_zeroed_joint(42.7, 30.5, 315.475, arm_mid_servo2, arm_top)
 
 leg_1_foot_joint = Joint(5, 10, 2.5, leg_1_lower, leg_1_foot)
 leg_1_foot_joint_1 = Joint(5, 10, 2.5, leg_1_foot, leg_1_foot_1)
@@ -446,10 +467,10 @@ ms = [
 				leg_2_hip_servo2,
 				leg_2_upper,
 				leg_2_lower,
-				arm_base_servo2,
-				arm_mid_servo,
-				arm_mid_servo2,
-				arm_top,
+				# arm_base_servo2,
+				# arm_mid_servo,
+				# arm_mid_servo2,
+				# arm_top,
 				leg_1_foot,
 				leg_2_foot
 		 ]
@@ -461,10 +482,10 @@ js = [
 				leg_2_hip_servo_joint,
 				leg_2_hip_servo2_joint,
 				leg_2_hip_upper_joint,
-				arm_base_servo_joint,
-				arm_base_servo2_joint,
-				arm_mid_servo_joint,
-				arm_mid_servo2_joint,
+				# arm_base_servo_joint,
+				# arm_base_servo2_joint,
+				# arm_mid_servo_joint,
+				# arm_mid_servo2_joint,
 		 ]
 
 # m1 = Mass(0, 0, 0, 100)
@@ -496,94 +517,94 @@ t = time.time()
 x, y, z = 0, 0, 0
 
 while True:
-	# print('------------------------')
-
-	#Update
-
-	dt = time.time() - t
-	t = time.time()
-
-# 	gx, gy, gz = mpu.read_gyro()
-# 	x, y, z = x + (gx * dt), y + (gy * dt), z + (gz * dt)
-
-# 	base_joint.set_a(math.radians(x), 0)
-# 	base_joint.set_a(math.radians(y), 1)
-# 	base_joint.set_a(math.radians(z), 2)
-
-	#---------------------
-	#Render
-
-	canvas.delete(ALL)
-
-	canvas.create_text(10, 10, anchor='nw', text='{}, {}'.format(dir, cdir))
-
-	canvas.create_line(1000, 0, 1000, 1000)
-	canvas.create_line(1000, 500, 1500, 500)
-
-	canvas.create_line(900, 50, 900, 150, fill=colors[dir][0])
-	canvas.create_line(850, 100, 950, 100, fill=colors[dir][1])
-
-	canvas.create_line(1450, 75, 1450, 125, fill=colors[(dir + 1) % 3][0])
-	canvas.create_line(1425, 100, 1475, 100, fill=colors[(dir + 1) % 3][1])
-
-	canvas.create_line(1450, 575, 1450, 625, fill=colors[(dir + 2) % 3][0])
-	canvas.create_line(1425, 600, 1475, 600, fill=colors[(dir + 2) % 3][1])
-
-	for i in ms:
-		render_mass(i, centers[0], 0.12, dir, canvas)
-		render_mass(i, centers[1], 0.06, (dir + 1) % 3, canvas)
-		render_mass(i, centers[2], 0.06, (dir + 2) % 3, canvas)
-
-	for i in js:
-		render_joint(i, centers[0], 0.12, dir, canvas)
-		render_joint(i, centers[1], 0.06, (dir + 1) % 3, canvas)
-		render_joint(i, centers[2], 0.06, (dir + 2) % 3, canvas)
-
-	cm = get_center(*ms)
-	render_center(cm, centers[0], dir, 0.12, canvas)
-	render_center(cm, centers[1], (dir + 1) % 3, 0.06, canvas)
-	render_center(cm, centers[2], (dir + 2) % 3, 0.06, canvas)
-
-	if leg_1_foot.z - leg_2_foot.z > 5:
-		foot_1, foot_2 = leg_1_foot, leg_1_foot
-		feet_1 = [leg_1_foot_1, leg_1_foot_2, leg_1_foot_3, leg_1_foot_4]
-		feet_2 = feet_1
-	elif leg_2_foot.z - leg_1_foot.z > 5:
-		foot_1, foot_2 = leg_2_foot, leg_2_foot
-		feet_1 = [leg_2_foot_1, leg_2_foot_2, leg_2_foot_3, leg_2_foot_4]
-		feet_2 = feet_1
-	else:
-		foot_1, foot_2 = leg_1_foot, leg_2_foot
-		feet_1 = [leg_1_foot_1, leg_1_foot_2, leg_1_foot_3, leg_1_foot_4]
-		feet_2 = [leg_2_foot_1, leg_2_foot_2, leg_2_foot_3, leg_2_foot_4]
-
-	cx, cy = centers[0]
-
-	balance = get_balance(foot_1, foot_2, feet_1, feet_2, 7.5, 15)
-
-	render_balance(balance, dir, cm, canvas)
-
-	if not in_balance(balance, cm[0], cm[1]):
-		feet = get_feet(leg_1_foot, leg_2_foot, cm[0], cm[1])
-
-		temp_leg_1 = [
-			zeroed_1_hip_servo,
-			zeroed_1_servo_upper,
-			zeroed_1_upper_lower,
-			leg_1_foot,
-		]
-		temp_leg_2 = [
-			zeroed_2_hip_servo,
-			zeroed_2_servo_upper,
-			zeroed_2_upper_lower,
-			leg_2_foot
-		]
-
-		if leg_1_foot.y < leg_2_foot.y: leg_1, leg_2 = temp_leg_2, temp_leg_1
-		else: leg_1, leg_2 = temp_leg_1, temp_leg_2
-
-		move_leg(leg_1, leg_2, *feet, cm[0], cm[1 ])
-
-		canvas.create_rectangle(cx + feet[0] + 2, cy + feet[1] + 2, cx + feet[0] - 2, cy + feet[1] - 2, width = 4, outline='cyan')
-
-	root.update()
+    # print('------------------------')
+    
+    #Update
+    
+    dt = time.time() - t
+    t = time.time()
+    
+    gx, gy, gz = mpu.read_gyro()
+    x, y, z = x + (gx * dt), y + (gy * dt), z + (gz * dt)
+    
+    print(round(x), round(y), round(z))
+    
+    # 	base_joint.set_a(math.radians(x), 0)
+    # 	base_joint.set_a(math.radians(y), 1)
+    base_joint.set_a(math.radians(y), 2)
+    
+    #---------------------
+    #Render
+    
+    canvas.delete(ALL)
+    
+    canvas.create_text(10, 10, anchor='nw', text='{}, {}'.format(dir, cdir))
+    
+    canvas.create_line(1000, 0, 1000, 1000)
+    canvas.create_line(1000, 500, 1500, 500)
+    
+    canvas.create_line(900, 50, 900, 150, fill=colors[dir][0])
+    canvas.create_line(850, 100, 950, 100, fill=colors[dir][1])
+    
+    canvas.create_line(1450, 75, 1450, 125, fill=colors[(dir + 1) % 3][0])
+    canvas.create_line(1425, 100, 1475, 100, fill=colors[(dir + 1) % 3][1])
+    
+    canvas.create_line(1450, 575, 1450, 625, fill=colors[(dir + 2) % 3][0])
+    canvas.create_line(1425, 600, 1475, 600, fill=colors[(dir + 2) % 3][1])
+    
+    for i in ms:
+    	render_mass(i, centers[0], 0.12, dir, canvas)
+    	render_mass(i, centers[1], 0.06, (dir + 1) % 3, canvas)
+    	render_mass(i, centers[2], 0.06, (dir + 2) % 3, canvas)
+    
+    for i in js:
+    	render_joint(i, centers[0], 0.12, dir, canvas)
+    	render_joint(i, centers[1], 0.06, (dir + 1) % 3, canvas)
+    	render_joint(i, centers[2], 0.06, (dir + 2) % 3, canvas)
+    
+    cm = get_center(*ms)
+    render_center(cm, centers[0], dir, 0.12, canvas)
+    render_center(cm, centers[1], (dir + 1) % 3, 0.06, canvas)
+    render_center(cm, centers[2], (dir + 2) % 3, 0.06, canvas)
+    
+    if leg_1_foot.z - leg_2_foot.z > 1000:
+    	foot_1, foot_2 = leg_1_foot, leg_1_foot
+    	feet_1 = [leg_1_foot_1, leg_1_foot_2, leg_1_foot_3, leg_1_foot_4]
+    	feet_2 = feet_1
+    elif leg_2_foot.z - leg_1_foot.z > 1000:
+    	foot_1, foot_2 = leg_2_foot, leg_2_foot
+    	feet_1 = [leg_2_foot_1, leg_2_foot_2, leg_2_foot_3, leg_2_foot_4]
+    	feet_2 = feet_1
+    else:
+    	foot_1, foot_2 = leg_1_foot, leg_2_foot
+    	feet_1 = [leg_1_foot_1, leg_1_foot_2, leg_1_foot_3, leg_1_foot_4]
+    	feet_2 = [leg_2_foot_1, leg_2_foot_2, leg_2_foot_3, leg_2_foot_4]
+    
+    cx, cy = centers[0]
+    
+    balance = get_balance(foot_1, foot_2, feet_1, feet_2, 7.5, 15)
+    
+    render_balance(balance, dir, cm, canvas)
+    
+    if not in_balance(balance, cm[0], cm[1]):
+    	feet = get_feet(leg_1_foot, leg_2_foot, cm[0], cm[1])
+    
+    	leg_1 = [
+    		zeroed_1_hip_servo,
+    		zeroed_1_servo_upper,
+    		zeroed_1_upper_lower,
+    		leg_1_foot,
+    	]
+    	leg_2 = [
+    		zeroed_2_hip_servo,
+    		zeroed_2_servo_upper,
+    		zeroed_2_upper_lower,
+    		leg_2_foot
+    	]
+    
+    
+    	move_leg(leg_1, leg_2, *feet, cm[0], cm[1])
+    
+    	canvas.create_rectangle(cx + feet[0] + 2, cy + feet[1] + 2, cx + feet[0] - 2, cy + feet[1] - 2, width = 4, outline='cyan')
+    
+    root.update()
