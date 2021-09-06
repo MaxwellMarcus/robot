@@ -3,15 +3,9 @@ import math
 import sys
 import time
 import numpy as np
-import servo_control as servo
-import MPU6050 as mpu
-
-root = Tk()
-canvas = Canvas(width = 1500, height = 1000)
-canvas.pack()
-
-l_map = {'xy': 0, 'yz': 1, 'zx': 2}
-mult_map = {'xy': [1, 1, 0], 'yz': [0, 1, 1], 'zx': [1, 0, 1]}
+# import servo_control as servo
+# import MPU6050 as mpu
+import graphics
 
 class Mass:
 		def __init__(self, x, y, z, m):
@@ -31,9 +25,7 @@ class Mass:
 				self.x, self.y, self.z = x, y, z
 
 				for j in self.joints:
-						#j.anchor_a[dir] = a + j.anchor_a.original[dir]
 						j.set_pos(*j.anchor_a.get_pos(j.anchor_dist, *self.get_pos()))
-						# j.set_pos(self.x + j.anchor_dist * math.cos(j.anchor_a), self.y + j.anchor_dist * math.sin(j.anchor_a))
 
 		def get_pos(self):
 				return self.x, self.y, self.z
@@ -46,8 +38,8 @@ class Joint:
 				self.anchor.set_joint(self)
 				self.pivot.set_as_pivot(self)
 
-				self.pivot_dist = dist(self, pivot) #math.sqrt((self.x - self.pivot.x) ** 2 + (self.y - self.pivot.y) ** 2 + (self.z - self.pivot.z) ** 2)
-				self.anchor_dist = dist(self, anchor) #math.sqrt((self.x - self.anchor.x) ** 2 + (self.y - self.anchor.y) ** 2 + (self.z - self.anchor.z) ** 2)
+				self.pivot_dist = dist(self, pivot)
+				self.anchor_dist = dist(self, anchor)
 
 				if not prev:
 					if self.anchor.pivot_joint:
@@ -59,7 +51,6 @@ class Joint:
 
 		def set_a(self, a, dir):
 				self.pivot_a[dir] = a
-				# self.pivot.set_pos(*self.pivot_a.get_pos())
 				self.pivot.set_pos(*self.pivot_a.get_pos(self.pivot_dist, *self.get_pos()))
 
 		def set_pos(self, x, y, z):
@@ -79,7 +70,6 @@ class Angle:
 		def __init__(self, x, y, z, x1, y1, z1, prev=None):
 			self.prev = prev
 
-
 			x, y, z = x1 - x, y1 - y, z1 - z
 			r = math.sqrt(x ** 2 + y ** 2 + z ** 2)
 			self.theta = math.atan2(y, z)
@@ -97,7 +87,7 @@ class Angle:
 			x + d * math.cos(self.theta) * math.cos(self.phi),
 			y + d * math.sin(self.theta) * math.cos(self.phi),
 			z + d * math.sin(self.phi)
-			]#[x + self.get_x(d), y + self.get_y(d), z + self.get_z(d)]
+			]
 
 		def get_pos(self, d, x, y, z):
 			R = self.get_rotation_matrix()
@@ -109,7 +99,6 @@ class Angle:
 			i = 0
 			while p:
 				Rs = [p.get_rotation_matrix()] + Rs
-				#pos = np.dot(R, pos)
 				p = p.prev
 				i += 1
 
@@ -172,7 +161,6 @@ class Angle:
 			i = 0
 			while p:
 				Rs = [p.get_rotation_matrix()] + Rs
-				#pos = np.dot(R, pos)
 				p = p.prev
 				i += 1
 
@@ -191,11 +179,6 @@ class Angle:
 			if dir == 0: self.theta = i
 			elif dir == 1: self.phi = i
 			else: self.psi = i
-				# elif dir == 1: self.phi = i
-				# else: self.psi = i
-
-
-
 
 def get_center(*args):
 		x, y, z = 0, 0, 0
@@ -262,130 +245,66 @@ def get_feet(foot_1, foot_2, x, y):
 def move_leg(o_leg_1, o_leg_2, x, y, cmx, cmy):
     if o_leg_1[3].y < o_leg_2[3].y: leg_1, leg_2 = o_leg_2, o_leg_1
     else: leg_1, leg_2 = o_leg_1, o_leg_2
-    
-    
+
+
     #Leg Movement Directions:
     #0: Z
     #1: X
     #2: X
     dy = leg_2[1].y - leg_2[2].y
     dz = leg_2[1].z - leg_2[2].z
-    
+
     upper_length = math.sqrt(dy ** 2 + dz ** 2)
-    
+
     move_dist = y - cmy
-    
+
     if abs(y - cmy) > abs(upper_length):
     	move_dist = upper_length
-    
+
     psi = math.asin(move_dist / upper_length)
-    
+
     # if leg_2[1].pivot_a.psi - psi > -0.1:
     # 	v = 0.01
     # else:
     # 	v = -0.01
-    	
+
     # leg_2[1].set_a(leg_2[1].pivot_a.psi + v, dir = 2)
     # leg_2[2].set_a(leg_2[2].pivot_a.psi - v, dir = 2)
-    
+
     # leg_1[1].set_a(leg_1[1].pivot_a.psi - v, dir = 2)
     # leg_1[2].set_a(leg_1[2].pivot_a.psi + v, dir = 2)
-    
+
     # servo.move_a(1, v)
     # servo.move_a(0, v)
     # servo.move_a(4, v)
     # servo.move_a(3, v)
-    
+
     leg_2[1].set_a(psi, dir = 2)
     leg_2[2].set_a(-psi, dir = 2)
-    
+
     leg_1[1].set_a(-psi, dir = 2)
     leg_1[2].set_a(psi, dir = 2)
-    
-    servo.set_a(1, psi)
-    servo.set_a(0, psi)
-    servo.set_a(4, psi)
-    servo.set_a(3, psi)
 
+    # servo.set_a(1, psi)
+    # servo.set_a(0, psi)
+    # servo.set_a(4, psi)
+    # servo.set_a(3, psi)
 
-def mouse_press(event, j):
-		global dir
-		x, y = (event.x - centers[0][0]) / 20 - j.x, (event.y - centers[0][1]) / 20 - j.y
-		sin_t = max([-1, min([1, x / 10])])
-		sin_p = max([-1, min([1, y / 10])])
-		t = math.asin(sin_t)
-		p = math.asin(sin_p)
-		j.set_a(t, 0)
-		j.set_a(p, 1)
+def get_mass_render(i):
+	return graphics.Cube(*i.get_pos(), 2)
 
+def get_joint_render(i):
+	return [
+		graphics.Cube(*i.get_pos(), 1, color=[1, 0, 0]),
+		graphics.Line(*i.anchor.get_pos(), *i.get_pos()),
+		graphics.Line(*i.get_pos(), *i.pivot.get_pos())
+	]
 
-def key_press(event):
-		global dir, theta, phi, psi
-		if event.keysym == 'w':dir = (dir + 1) % 3
-		if event.keysym == 's':dir = (dir - 1) % 3
+def get_center_render(cm):
+	return graphics.Cube(*cm, 5, color=[0, 0, 1], projection=True)
 
-		d = 0
-		b = base_joint
-		if event.keysym == 'a':
-			theta += math.pi / 100
-			b.set_a(theta, d)
-		if event.keysym == 'd':
-			theta -= math.pi / 100
-			b.set_a(theta, d)
-		d = 1
-		if event.keysym == 'Up':
-			phi += math.pi / 100
-			b.set_a(phi, d)
-		if event.keysym == 'Down':
-			phi -= math.pi / 100
-			b.set_a(phi, d)
-		d = 2
-		if event.keysym == 'Left':
-			psi += math.pi / 100
-			b.set_a(psi, d)
-		if event.keysym == 'Right':
-			psi -= math.pi / 100
-			b.set_a(psi, d)
-
-		print(math.degrees(theta), math.degrees(phi), math.degrees(psi))
-
-def render_mass(i, center, scale, dir, canvas):
-		if dir == 0: x, y, w = i.x, i.y, (i.m - i.z) * scale
-		elif dir == 1: x, y, w = i.z, i.y, (i.m - i.z) * scale
-		else: x, y, w = i.x, -i.z, (i.m - i.y) * scale
-
-		cx, cy = center
-		ox, oy = (x * 10 * scale), (y * 10 * scale)
-
-		canvas.create_rectangle(cx + ox + w, cy + oy + w, cx + ox - w, cy + oy - w)
-
-def render_joint(i, center, scale, dir, canvas):
-		if dir == 0: x, y, ax, ay, px, py	= i.x, i.y, i.anchor.x, i.anchor.y, i.pivot.x, i.pivot.y
-		elif dir == 1: x, y, ax, ay, px, py = i.z, i.y, i.anchor.z, i.anchor.y, i.pivot.z, i.pivot.y
-		else: x, y, ax, ay, px, py = i.x, -i.z, i.anchor.x, -i.anchor.z, i.pivot.x, -i.pivot.z
-
-		cx, cy = center
-		ox, oy = (x * 10 * scale), (y * 10 * scale)
-		oax, oay = (ax * 10 * scale), (ay * 10 * scale)
-		opx, opy = (px * 10 * scale), (py * 10 * scale)
-
-		canvas.create_rectangle(cx + ox + 2, cy + oy + 2, cx + ox - 2, cy + oy - 2, outline='blue')
-		canvas.create_line(cx + ox, cy + oy, cx + oax, cy + oay)
-		canvas.create_line(cx + ox, cy + oy, cx + opx, cy + opy)
-
-def render_center(cm, center, dir, scale, canvas):
-		cmx, cmy, cmz = cm
-		if dir == 0: x, y, m = cmx, cmy, abs(100 - cmz) * scale
-		elif dir == 1: x, y, m = cmz, cmy, abs(100 - cmx) * scale
-		else: x, y, m = cmx, -cmz, abs(100 - cmy) * scale
-		x, y = x * 10 * scale + center[0], y * 10 * scale + center[1]
-		canvas.create_rectangle(x - 2, y - 2, x + 2, y + 2, fill='green', outline='green')
-
-def render_balance(o_coords, dir, cm, canvas):
-	coords = o_coords.copy()
-	for i in range(0, len(coords), 2):
-		coords[i], coords[i + 1] = coords[i] + centers[dir][0], coords[i + 1] + centers[dir][1]
-	canvas.create_polygon(*coords, outline='purple' if in_balance(o_coords, cm[0], cm[1]) else 'red', fill='', width=2)
+def get_balance_render(coords, in_balance):
+	return graphics.Polygon2D(coords, color = [0.75, 0, 1] if in_balance else [1, 0, 0.4])
 
 def create_zeroed_joint(x, y, z, anchor, pivot, prev=None):
 	m = Mass(x, y, z, 0)
@@ -410,7 +329,7 @@ leg_2_hip_servo2 = Mass(66.684, 24.427, 156.252, 12)
 leg_2_upper = Mass(86.41, 20, 95.437, 19)
 leg_2_lower = Mass(65.046, 17.833, 34.483, 9)
 
-xr, yr = 7.5, 15
+xr, yr = 4.5, 12
 
 leg_1_foot = Mass(5, 10, 2.5, 1)
 leg_1_foot_1 = Mass(5 - xr, 10 - yr, 2.5, 1)
@@ -427,7 +346,6 @@ leg_2_foot_4 = Mass(65 + xr, 10 + yr, 2.5, 1)
 base_joint = Joint(35, 30.5, 181.475, base, hip)
 
 leg_1_hip_servo_joint, zeroed_1_hip_servo, zero_mass_hip_1 = create_zeroed_joint(4.45, 25.25, 167.875, hip, leg_1_hip_servo2, prev=base_joint.pivot_a)
-# zeroed_1 = Joint(*zero_mass_1.get_pos(), leg_1_hip_servo2, leg_1_hip_servo_dup)
 leg_1_hip_servo2_joint, zeroed_1_servo_upper, zero_mass_upper_1 = create_zeroed_joint(-11.1, 20, 154.735, leg_1_hip_servo2, leg_1_upper)
 leg_1_hip_upper_joint, zeroed_1_upper_lower, zero_mass_lower_1 = create_zeroed_joint(-1, 20, 80, leg_1_upper, leg_1_lower)
 leg_2_hip_servo_joint, zeroed_2_hip_servo, zero_mass_hip_2 = create_zeroed_joint(65.55, 25.25, 167.875, hip, leg_2_hip_servo2, prev=base_joint.pivot_a)
@@ -456,155 +374,140 @@ leg_2_foot_joint_2 = Joint(65, 10, 2.5, leg_2_foot, leg_2_foot_2)
 leg_2_foot_joint_3 = Joint(65, 10, 2.5, leg_2_foot, leg_2_foot_3)
 leg_2_foot_joint_4 = Joint(65, 10, 2.5, leg_2_foot, leg_2_foot_4)
 
-ms = [
-				base,
-				hip,
-				# leg_1_hip_servo,
-				leg_1_hip_servo2,
-				leg_1_upper,
-				leg_1_lower,
-				# leg_2_hip_servo,
-				leg_2_hip_servo2,
-				leg_2_upper,
-				leg_2_lower,
-				# arm_base_servo2,
-				# arm_mid_servo,
-				# arm_mid_servo2,
-				# arm_top,
-				leg_1_foot,
-				leg_2_foot
-		 ]
+m_render = [
+	base,
+	hip,
+	leg_1_hip_servo2,
+	leg_1_upper,
+	leg_1_lower,
+	leg_2_hip_servo2,
+	leg_2_upper,
+	leg_2_lower,
+	# arm_base_servo2,
+	# arm_mid_servo,
+	# arm_mid_servo2,
+	# arm_top,
+	leg_1_foot_1,
+	leg_1_foot_2,
+	leg_1_foot_3,
+	leg_1_foot_4,
+	leg_2_foot_1,
+	leg_2_foot_2,
+	leg_2_foot_3,
+	leg_2_foot_4,
+]
+m_calculate = [
+	base,
+	hip,
+	leg_1_hip_servo2,
+	leg_1_upper,
+	leg_1_lower,
+	leg_2_hip_servo2,
+	leg_2_upper,
+	leg_2_lower,
+	# arm_base_servo2,
+	# arm_mid_servo,
+	# arm_mid_servo2,
+	# arm_top,
+	leg_1_foot,
+	leg_2_foot,
+]
 js = [
-				base_joint,
-				leg_1_hip_servo_joint,
-				leg_1_hip_servo2_joint,
-				leg_1_hip_upper_joint,
-				leg_2_hip_servo_joint,
-				leg_2_hip_servo2_joint,
-				leg_2_hip_upper_joint,
-				# arm_base_servo_joint,
-				# arm_base_servo2_joint,
-				# arm_mid_servo_joint,
-				# arm_mid_servo2_joint,
-		 ]
-
-# m1 = Mass(0, 0, 0, 100)
-# m2 = Mass(100, 0, 0, 100)
-# m3 = Mass(100, 100, 0, 100)
-# m4 = Mass(100, 100, 100, 100)
-#
-# j1 = Joint(50, 0, 0, m1, m2)
-# j2 = Joint(100, 50, 0, m2, m3)
-# j3 = Joint(100, 100, 50, m2, m4)
-#
-# ms = [m1, m2, m4]
-# js = [j1, j3]
-
+	base_joint,
+	leg_1_hip_servo_joint,
+	leg_1_hip_servo2_joint,
+	leg_1_hip_upper_joint,
+	leg_2_hip_servo_joint,
+	leg_2_hip_servo2_joint,
+	leg_2_hip_upper_joint,
+	zero_mass_hip_1,
+	zero_mass_upper_1,
+	zero_mass_lower_1,
+	zero_mass_hip_2,
+	zero_mass_upper_2,
+	zero_mass_lower_2,
+	# arm_base_servo_joint,
+	# arm_base_servo2_joint,
+	# arm_mid_servo_joint,
+	# arm_mid_servo2_joint,
+]
 
 centers = [[500, 500], [1250, 250], [1250, 750]]
 
 colors = [['green', 'blue'], ['green', 'red'], ['red', 'blue']]
-
-
-#root.bind('<Button-1>', lambda e: mouse_press(e, j1))
-#root.bind('<Button-2>', lambda e: mouse_press(e, j2))
-#root.bind('<Button-3>', lambda e: mouse_press(e, j3))
-
-root.bind('<KeyPress>', key_press)
 
 t = time.time()
 
 x, y, z = 0, 0, 0
 
 while True:
-    # print('------------------------')
-    
-    #Update
-    
-    dt = time.time() - t
-    t = time.time()
-    
-    gx, gy, gz = mpu.read_gyro()
-    x, y, z = x + (gx * dt), y + (gy * dt), z + (gz * dt)
-    
-    print(round(x), round(y), round(z))
-    
-    # 	base_joint.set_a(math.radians(x), 0)
-    # 	base_joint.set_a(math.radians(y), 1)
-    base_joint.set_a(math.radians(y), 2)
-    
-    #---------------------
-    #Render
-    
-    canvas.delete(ALL)
-    
-    canvas.create_text(10, 10, anchor='nw', text='{}, {}'.format(dir, cdir))
-    
-    canvas.create_line(1000, 0, 1000, 1000)
-    canvas.create_line(1000, 500, 1500, 500)
-    
-    canvas.create_line(900, 50, 900, 150, fill=colors[dir][0])
-    canvas.create_line(850, 100, 950, 100, fill=colors[dir][1])
-    
-    canvas.create_line(1450, 75, 1450, 125, fill=colors[(dir + 1) % 3][0])
-    canvas.create_line(1425, 100, 1475, 100, fill=colors[(dir + 1) % 3][1])
-    
-    canvas.create_line(1450, 575, 1450, 625, fill=colors[(dir + 2) % 3][0])
-    canvas.create_line(1425, 600, 1475, 600, fill=colors[(dir + 2) % 3][1])
-    
-    for i in ms:
-    	render_mass(i, centers[0], 0.12, dir, canvas)
-    	render_mass(i, centers[1], 0.06, (dir + 1) % 3, canvas)
-    	render_mass(i, centers[2], 0.06, (dir + 2) % 3, canvas)
-    
-    for i in js:
-    	render_joint(i, centers[0], 0.12, dir, canvas)
-    	render_joint(i, centers[1], 0.06, (dir + 1) % 3, canvas)
-    	render_joint(i, centers[2], 0.06, (dir + 2) % 3, canvas)
-    
-    cm = get_center(*ms)
-    render_center(cm, centers[0], dir, 0.12, canvas)
-    render_center(cm, centers[1], (dir + 1) % 3, 0.06, canvas)
-    render_center(cm, centers[2], (dir + 2) % 3, 0.06, canvas)
-    
-    if leg_1_foot.z - leg_2_foot.z > 1000:
-    	foot_1, foot_2 = leg_1_foot, leg_1_foot
-    	feet_1 = [leg_1_foot_1, leg_1_foot_2, leg_1_foot_3, leg_1_foot_4]
-    	feet_2 = feet_1
-    elif leg_2_foot.z - leg_1_foot.z > 1000:
-    	foot_1, foot_2 = leg_2_foot, leg_2_foot
-    	feet_1 = [leg_2_foot_1, leg_2_foot_2, leg_2_foot_3, leg_2_foot_4]
-    	feet_2 = feet_1
-    else:
-    	foot_1, foot_2 = leg_1_foot, leg_2_foot
-    	feet_1 = [leg_1_foot_1, leg_1_foot_2, leg_1_foot_3, leg_1_foot_4]
-    	feet_2 = [leg_2_foot_1, leg_2_foot_2, leg_2_foot_3, leg_2_foot_4]
-    
-    cx, cy = centers[0]
-    
-    balance = get_balance(foot_1, foot_2, feet_1, feet_2, 7.5, 15)
-    
-    render_balance(balance, dir, cm, canvas)
-    
-    if not in_balance(balance, cm[0], cm[1]):
-    	feet = get_feet(leg_1_foot, leg_2_foot, cm[0], cm[1])
-    
-    	leg_1 = [
-    		zeroed_1_hip_servo,
-    		zeroed_1_servo_upper,
-    		zeroed_1_upper_lower,
-    		leg_1_foot,
-    	]
-    	leg_2 = [
-    		zeroed_2_hip_servo,
-    		zeroed_2_servo_upper,
-    		zeroed_2_upper_lower,
-    		leg_2_foot
-    	]
-    
-    
-    	move_leg(leg_1, leg_2, *feet, cm[0], cm[1])
-    
-    	canvas.create_rectangle(cx + feet[0] + 2, cy + feet[1] + 2, cx + feet[0] - 2, cy + feet[1] - 2, width = 4, outline='cyan')
-    
-    root.update()
+	# print('------------------------')
+
+	#Update
+
+	dt = time.time() - t
+	t = time.time()
+
+	# gx, gy, gz = mpu.read_gyro()
+	# x, y, z = x + (gx * dt), y + (gy * dt), z + (gz * dt)
+	#
+	# print(round(x), round(y), round(z))
+	#
+	# # 	base_joint.set_a(math.radians(x), 0)
+	# # 	base_joint.set_a(math.radians(y), 1)
+	# base_joint.set_a(math.radians(y), 2)
+
+	graphics.on_key('i', lambda: base_joint.set_a(base_joint.pivot_a.psi + 0.1, 2))
+	graphics.on_key('k', lambda: base_joint.set_a(base_joint.pivot_a.psi - 0.1, 2))
+
+	cm = get_center(*m_calculate)
+
+	if leg_1_foot.z - leg_2_foot.z > 1000:
+		foot_1, foot_2 = leg_1_foot, leg_1_foot
+		feet_1 = [leg_1_foot_1, leg_1_foot_2, leg_1_foot_3, leg_1_foot_4]
+		feet_2 = feet_1
+	elif leg_2_foot.z - leg_1_foot.z > 1000:
+		foot_1, foot_2 = leg_2_foot, leg_2_foot
+		feet_1 = [leg_2_foot_1, leg_2_foot_2, leg_2_foot_3, leg_2_foot_4]
+		feet_2 = feet_1
+	else:
+		foot_1, foot_2 = leg_1_foot, leg_2_foot
+		feet_1 = [leg_1_foot_1, leg_1_foot_2, leg_1_foot_3, leg_1_foot_4]
+		feet_2 = [leg_2_foot_1, leg_2_foot_2, leg_2_foot_3, leg_2_foot_4]
+
+	balance = get_balance(foot_1, foot_2, feet_1, feet_2, 7.5, 15)
+	balanced = in_balance(balance, cm[0], cm[1])
+
+	if not balanced:
+		feet = get_feet(leg_1_foot, leg_2_foot, cm[0], cm[1])
+
+		leg_1 = [
+			zeroed_1_hip_servo,
+			zeroed_1_servo_upper,
+			zeroed_1_upper_lower,
+			leg_1_foot,
+		]
+		leg_2 = [
+			zeroed_2_hip_servo,
+			zeroed_2_servo_upper,
+			zeroed_2_upper_lower,
+			leg_2_foot
+		]
+
+
+		move_leg(leg_1, leg_2, *feet, cm[0], cm[1])
+
+	#---------------------
+	#Render
+	objects = []
+
+	objects.append(get_balance_render(balance, balanced))
+	objects.append(get_center_render(cm))
+
+	for i in m_render:
+		objects.append(get_mass_render(i))
+
+	for i in js:
+		objects += get_joint_render(i)
+
+	graphics.render(objects)
